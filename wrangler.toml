@@ -1,26 +1,20 @@
 name = "scrapyr-api"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
-compatibility_flags = []
 
 [vars]
 # Set via: wrangler secret put GROQ_API_KEY
 
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
-# Create: wrangler kv:namespace create scrapyr_kv
+id = "REPLACE_WITH_KV_ID"
+# Create with: wrangler kv namespace create scrapyr_kv
+# (wrangler 4.x syntax — no colon between kv and namespace)
 
 [[d1_databases]]
 binding = "DB"
 database_name = "scrapyr-db"
-database_id = "REPLACE_WITH_YOUR_D1_ID"
-# Create: wrangler d1 create scrapyr-db
+database_id = "c9811430-0f70-4bb6-bd89-354661d84208"
 
 [triggers]
 crons = ["0 * * * *"]
-# Re-runs scheduled jobs every hour
-
-[routes]
-pattern = "scrapyr-api.kryv.workers.dev/*"
-zone_name = "kryv.workers.dev"
