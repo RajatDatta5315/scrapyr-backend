@@ -5,12 +5,6 @@ compatibility_date = "2024-01-01"
 [vars]
 # Set via: wrangler secret put GROQ_API_KEY
 
-[[kv_namespaces]]
-binding = "KV"
-id = "REPLACE_WITH_KV_ID"
-# Create with: wrangler kv namespace create scrapyr_kv
-# (wrangler 4.x syntax — no colon between kv and namespace)
-
 [[d1_databases]]
 binding = "DB"
 database_name = "scrapyr-db"
