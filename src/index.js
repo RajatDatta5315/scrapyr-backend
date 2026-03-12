@@ -83,6 +83,10 @@ export default {
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+    // Ensure relay table exists
+    await env.DB.prepare('CREATE TABLE IF NOT EXISTS relay_articles (id TEXT PRIMARY KEY, title TEXT, slug TEXT, excerpt TEXT, body TEXT, tags TEXT, created_at TEXT)').run().catch(() => {});
+
+
     // ══ POST /extract ══════════════════════════════════════════════
     if (request.method === 'POST' && path === '/extract') {
       const body = await request.json();
@@ -172,6 +176,28 @@ Rules:
     // ══ Cron handler — re-run scheduled jobs ════════════════════════
     // Called by Cloudflare scheduled trigger
 
+
+    // ══ ARTICLE RELAY: POST /relay (RYDEN saves article) ══════════════
+    if (request.method === 'POST' && path === '/relay') {
+      const body = await request.json().catch(() => ({}));
+      const { title, slug, excerpt, body: articleBody, tags } = body;
+      if (!title || !articleBody) return json({ error: 'title and body required' }, 400);
+      const id = crypto.randomUUID().substring(0, 8);
+      await env.DB.prepare(
+        'INSERT INTO relay_articles (id, title, slug, excerpt, body, tags, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, title, slug || '', excerpt || '', articleBody, JSON.stringify(tags || []), new Date().toISOString()).run().catch(() => {});
+      return json({ success: true, id, inkrux_url: `https://inkrux.kryv.network/write?relay=${id}` });
+    }
+
+    // ══ ARTICLE RELAY: GET /relay/:id (INKRUX fetches article) ══════
+    if (request.method === 'GET' && path.startsWith('/relay/')) {
+      const relayId = path.split('/relay/')[1];
+      // Create table if not exists
+      await env.DB.prepare('CREATE TABLE IF NOT EXISTS relay_articles (id TEXT PRIMARY KEY, title TEXT, slug TEXT, excerpt TEXT, body TEXT, tags TEXT, created_at TEXT)').run().catch(() => {});
+      const row = await env.DB.prepare('SELECT * FROM relay_articles WHERE id = ?').bind(relayId).first().catch(() => null);
+      if (!row) return json({ error: 'Article not found' }, 404);
+      return json({ success: true, article: { ...row, tags: JSON.parse(row.tags || '[]') } });
+    }
     return json({ name: 'SCRAPYR API', version: '1.0.0', routes: ['/extract', '/jobs/:id', '/download/:id.json', '/download/:id.csv', '/scheduled'] });
   },
 
