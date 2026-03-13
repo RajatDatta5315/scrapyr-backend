@@ -10,3 +10,8 @@ binding = "DB"
 database_name = "scrapyr-db"
 database_id = "c9811430-0f70-4bb6-bd89-354661d84208"
 
+
+[[kv_namespaces]]
+binding = "KV"
+id = "scrapyr_kv_placeholder"
+# Run: wrangler kv namespace create scrapyr_kv  → paste the id above

@@ -14,6 +14,7 @@ const json = (data, status = 200) =>
 
 // ── AI call via Groq ──────────────────────────────────────────────
 async function callGroq(apiKey, systemPrompt, userPrompt) {
+  if (!apiKey) throw new Error('GROQ_API_KEY not set — run: wrangler secret put GROQ_API_KEY');
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -24,7 +25,12 @@ async function callGroq(apiKey, systemPrompt, userPrompt) {
       max_tokens: 4096,
     }),
   });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Groq API error ${res.status}: ${errText.slice(0, 200)}`);
+  }
   const data = await res.json();
+  if (!data.choices?.[0]?.message?.content) throw new Error('Empty response from Groq');
   return JSON.parse(data.choices[0].message.content);
 }
 
@@ -82,6 +88,9 @@ export default {
     const path = url.pathname;
 
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+
+    // Health check
+    if (path === '/health' || path === '/') return json({ status: 'ok', service: 'SCRAPYR', groq: !!env.GROQ_API_KEY });
 
     // Ensure relay table exists
     await env.DB.prepare('CREATE TABLE IF NOT EXISTS relay_articles (id TEXT PRIMARY KEY, title TEXT, slug TEXT, excerpt TEXT, body TEXT, tags TEXT, created_at TEXT)').run().catch(() => {});
